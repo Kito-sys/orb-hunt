@@ -1,0 +1,585 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>סריקת קוד לדוגמה</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Layout: phone column. Header with scan progress, three tabs (scan / map / findings). Code panel stays dark in both themes, like an editor. */
+:root{
+  --bg:#f3f4f1; --card:#ffffff; --ink:#1f2622; --mute:#66706a; --line:#dfe3dd;
+  --accent:#2f6f5e; --accent-ink:#ffffff; --hi:#fff4c2;
+  --crit:#b3261e; --crit-bg:#fbe4e1; --high:#a35a00; --high-bg:#fbefd8; --med:#3b5fa8; --med-bg:#e3eafa; --ok:#2e7d4f;
+  --ed:#14191a; --ed-line:#232b2d; --ed-ink:#cfd8d6; --ed-num:#5a6967; --ed-scan:#24433b; --ed-flag:#4a2320;
+  --f-ui:"Rubik","Heebo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-code:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111614; --card:#18201d; --ink:#e3e9e5; --mute:#97a39c; --line:#28322e;
+  --accent:#7cc7b0; --accent-ink:#0d1a15; --hi:#3a3518;
+  --crit:#ff8b80; --crit-bg:#3d1f1c; --high:#f0b35c; --high-bg:#3a2a12; --med:#9db8ff; --med-bg:#1f2840; --ok:#7fd29c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111614; --card:#18201d; --ink:#e3e9e5; --mute:#97a39c; --line:#28322e;
+  --accent:#7cc7b0; --accent-ink:#0d1a15; --hi:#3a3518;
+  --crit:#ff8b80; --crit-bg:#3d1f1c; --high:#f0b35c; --high-bg:#3a2a12; --med:#9db8ff; --med-bg:#1f2840; --ok:#7fd29c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.55;direction:rtl;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 32px}
+.wrap{max-width:820px;margin-inline:auto;display:flex;flex-direction:column;gap:14px}
+h1{margin:0;font-size:22px;text-wrap:balance}
+.sub{color:var(--mute);font-size:14px}
+.top{display:flex;flex-direction:column;gap:6px}
+.progress{display:flex;align-items:center;gap:10px}
+.bar{flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.pct{font-variant-numeric:tabular-nums;font-size:13px;color:var(--mute);min-width:3.5em;text-align:start}
+.counts{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;padding:3px 10px;border-radius:12px;font-weight:500;white-space:nowrap}
+.c-crit{background:var(--crit-bg);color:var(--crit)}.c-high{background:var(--high-bg);color:var(--high)}.c-med{background:var(--med-bg);color:var(--med)}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;background:none;border:0;border-bottom:3px solid transparent;padding:10px 12px;min-height:44px;color:var(--mute);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--accent);font-weight:600}
+.tabs button:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ed{background:var(--ed);border-radius:12px;overflow:hidden;min-width:0;color:var(--ed-ink)}
+.edbar{display:flex;gap:4px;overflow-x:auto;padding:6px 6px 0;background:#0e1213;direction:ltr;scrollbar-width:none}
+.edbar span{font-family:var(--f-code);font-size:12px;padding:6px 10px;border-radius:8px 8px 0 0;color:var(--ed-num);white-space:nowrap}
+.edbar span.on{background:var(--ed);color:var(--ed-ink)}
+.edbar span.done{color:#7fb8a6}
+.code{height:44vh;min-height:280px;max-height:520px;overflow:auto;direction:ltr;text-align:left;font-family:var(--f-code);font-size:12.5px;line-height:1.7;padding:8px 0}
+.ln{display:grid;grid-template-columns:3.2em 1fr;white-space:pre;padding-right:12px}
+.ln b{font-weight:400;color:var(--ed-num);text-align:right;padding-right:12px;user-select:none}
+.ln.scan{background:var(--ed-scan)}
+.ln.flag{background:var(--ed-flag)}
+.ln .tag{color:#ff9d8f;font-family:var(--f-ui);font-size:11px;margin-left:10px}
+.kw{color:#d6a7ff}.st{color:#b5d98b}.cm{color:#6f807c;font-style:italic}.nu{color:#f2c27b}
+.status{font-family:var(--f-code);font-size:12px;color:var(--ed-num);padding:6px 12px;border-top:1px solid var(--ed-line);direction:ltr;display:flex;justify-content:space-between;gap:10px}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px}
+button.btn{font:inherit;font-size:15px;min-height:44px;padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.feed{display:flex;flex-direction:column;gap:8px}
+.f{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;min-width:0}
+.f .chip{align-self:start}
+.f h3{margin:0;font-size:15px;font-weight:600}
+.f .where{grid-column:2;font-family:var(--f-code);font-size:12px;color:var(--mute);direction:ltr;text-align:right}
+.f p{grid-column:2;margin:0;font-size:14px}
+.f p.fix{color:var(--ok)}
+.f.new{animation:pop .5s ease-out}
+@keyframes pop{from{background:var(--hi)}}
+.clockrow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.clock{font-family:var(--f-code);font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;direction:ltr;color:var(--accent)}
+.proj{font-size:14px;font-weight:500}
+.proj span{color:var(--mute);font-weight:400}
+.empty{color:var(--mute);background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:14px}
+.map{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto}
+.map svg{display:block;width:100%;min-width:560px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--mute)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:6px;vertical-align:middle}
+.note{font-size:13px;color:var(--mute)}
+[role="tabpanel"]{display:flex;flex-direction:column;gap:12px}
+@media (prefers-reduced-motion:reduce){.f.new{animation:none}.bar i{transition:none}}
+.modal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:rgba(10,14,12,.55)}
+.modal .box{background:var(--card);color:var(--ink);border-radius:16px;padding:22px 20px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:14px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.modal h2{margin:0;font-size:20px}
+.modal a.btn{display:block;text-decoration:none;text-align:center;font-weight:600;min-height:46px;line-height:46px;border-radius:10px;background:var(--accent);color:var(--accent-ink)}
+.modal button{font:inherit;background:none;border:0;color:var(--mute);min-height:40px;cursor:pointer}
+</style>
+</head><body>
+
+<div class="wrap">
+  <div class="top">
+    <h1>סריקת קוד לדוגמה</h1>
+    <div class="sub" id="desc">שלושה פרויקטים מומצאים שנסרקים בסבבים, שורה אחרי שורה, למשך שלוש שעות. הקוד נכתב בשביל ההדגמה, והממצאים אמיתיים לקוד הזה.</div>
+    <div class="clockrow"><span class="clock" id="clock">3:00:00</span><span class="sub" id="clockLbl">עוד לא התחיל</span></div>
+    <div class="proj" id="proj"></div>
+    <div class="progress"><div class="bar"><i id="bar"></i></div><span class="pct" id="pct">0%</span></div>
+    <div class="counts" id="counts">
+      <span class="chip c-crit">קריטי <b id="nCrit">0</b></span>
+      <span class="chip c-high">גבוה <b id="nHigh">0</b></span>
+      <span class="chip c-med">בינוני <b id="nMed">0</b></span>
+      <span class="chip" style="background:var(--card);border:1px solid var(--line)">סבב <b id="nRound">1</b> · סה"כ ממצאים בכל הסבבים <b id="nTotal">0</b></span>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="t-scan" aria-selected="true" aria-controls="p-scan">סריקה</button>
+    <button role="tab" id="t-map" aria-selected="false" aria-controls="p-map">דיאגרמה</button>
+    <button role="tab" id="t-list" aria-selected="false" aria-controls="p-list">ממצאים <span id="tabCount"></span></button>
+  </div>
+
+  <section role="tabpanel" id="p-scan" aria-labelledby="t-scan">
+    <div class="ed">
+      <div class="edbar" id="files"></div>
+      <div class="code" id="code"></div>
+      <div class="status"><span id="stFile">ready</span><span id="stRule">rules: 9</span></div>
+    </div>
+    <div class="ctrls">
+      <button class="btn pri" id="go" type="button">השהיה</button>
+      <button class="btn" id="speed" type="button">מהירות: רגילה</button>
+    </div>
+    <div class="feed" id="latest"><div class="empty">הממצאים יופיעו כאן ברגע שהסורק מגיע לשורה הבעייתית.</div></div>
+  </section>
+
+  <section role="tabpanel" id="p-map" aria-labelledby="t-map" hidden>
+    <div class="map" id="mapBox"></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>רכיב בקוד</span><span><i style="background:var(--mute)"></i>שירות חיצוני</span><span><i style="background:var(--crit)"></i>מספר ממצאים ברכיב</span></div>
+    <div class="note">הקווים מראים מי קורא למי. המספר האדום מתעדכן תוך כדי הסריקה.</div>
+  </section>
+
+  <section role="tabpanel" id="p-list" aria-labelledby="t-list" hidden>
+    <div class="feed" id="all"><div class="empty">עוד לא נמצא כלום בפרויקט הנוכחי.</div></div>
+  </section>
+</div>
+<div class="modal" id="doneModal" role="dialog" aria-modal="true" aria-labelledby="doneTitle" hidden>
+  <div class="box">
+    <h2 id="doneTitle">מייל ההרשמה נשלח</h2>
+    <a class="btn" id="doneLink" href="https://kito-sys.github.io/orb-hunt/" target="_blank" rel="noopener">פתיחת ציד האורות</a>
+    <button type="button" id="doneClose">סגירה</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var P=[];
+
+P.push({title:"Crumb & Co",about:"אתר הזמנות של מאפייה · Node.js",
+files:[
+{name:"server.js",node:"server",src:
+`const express = require("express");
+const orders = require("./routes/orders");
+const app = express();
+
+app.use(express.json());
+app.use(express.static("public"));
+app.use("/api/orders", orders);
+
+app.use((err, req, res, next) => {
+  res.status(500).json({ error: err.stack });
+});
+
+app.listen(3000, () => console.log("up on 3000"));`},
+{name:"routes/orders.js",node:"orders",src:
+`const router = require("express").Router();
+const db = require("../db");
+const pay = require("../payments");
+const mail = require("../mailer");
+
+// list orders for a customer
+router.get("/", async (req, res) => {
+  const email = req.query.email;
+  const rows = await db.query(
+    "SELECT * FROM orders WHERE email = '" + email + "'"
+  );
+  for (const o of rows) {
+    o.items = await db.query("SELECT * FROM items WHERE order_id = " + o.id);
+  }
+  res.json(rows);
+});
+
+// place an order
+router.post("/", async (req, res) => {
+  const { email, items, total } = req.body;
+  const charge = pay.charge(email, total);
+  const id = await db.insertOrder(email, items, total);
+  mail.sendReceipt(email, id);
+  res.json({ ok: true, id, charge });
+});
+
+// cancel
+router.delete("/:id", async (req, res) => {
+  await db.query("DELETE FROM orders WHERE id = " + req.params.id);
+  res.json({ ok: true });
+});
+
+module.exports = router;`},
+{name:"db.js",node:"db",src:
+`const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: "postgres://crumb:Sourdough2024@db.crumb.local/shop"
+});
+
+async function query(sql) {
+  const r = await pool.query(sql);
+  return r.rows;
+}
+
+async function insertOrder(email, items, total) {
+  const r = await pool.query(
+    "INSERT INTO orders(email, total) VALUES($1, $2) RETURNING id",
+    [email, total]
+  );
+  for (const it of items) {
+    pool.query("INSERT INTO items(order_id, name, qty) VALUES($1,$2,$3)",
+      [r.rows[0].id, it.name, it.qty]);
+  }
+  return r.rows[0].id;
+}
+
+module.exports = { query, insertOrder };`},
+{name:"payments.js",node:"pay",src:
+`const PAYFLOW_KEY = "pf_live_DEMO_not_a_real_key_123";
+
+async function charge(email, total) {
+  const res = await fetch("https://api.payflow.example/charge", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + PAYFLOW_KEY },
+    body: JSON.stringify({ email, amount: total })
+  });
+  return res.json();
+}
+
+module.exports = { charge };`},
+{name:"mailer.js",node:"mail",src:
+`const nodemailer = require("nodemailer");
+const t = nodemailer.createTransport({ host: "smtp.mailpost.example" });
+
+async function sendReceipt(to, id) {
+  let tries = 0;
+  while (true) {
+    try {
+      return await t.sendMail({ to, subject: "Order #" + id, text: "Thanks!" });
+    } catch (e) {
+      tries++;
+      console.log("retry", tries);
+    }
+  }
+}
+
+module.exports = { sendReceipt };`},
+{name:"public/app.js",node:"web",src:
+`async function loadOrders() {
+  const email = document.querySelector("#email").value;
+  const r = await fetch("/api/orders?email=" + email);
+  const list = await r.json();
+  document.querySelector("#list").innerHTML =
+    list.map(o => "<li>" + o.note + "</li>").join("");
+}
+
+async function placeOrder(items) {
+  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+  await fetch("/api/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: me.email, items, total })
+  });
+}`}],
+find:[
+{f:"routes/orders.js",m:"WHERE email = '\"",s:"crit",rule:"sql-injection",t:"אפשר לקרוא הזמנות של כולם",x:"המייל מהכתובת נכנס ישר לשאילתה. מי שכותב ' OR '1'='1 במקום מייל מקבל את כל ההזמנות במאגר.",fix:"להעביר את המייל כפרמטר ($1) ולא לחבר אותו למחרוזת."},
+{f:"routes/orders.js",m:"DELETE FROM orders WHERE id",s:"crit",rule:"sql-injection",t:"מחיקה בלי בדיקה",x:"כל אחד יכול למחוק כל הזמנה לפי מספר, ואפשר גם להזריק פקודה דרך המספר.",fix:"לבדוק שההזמנה שייכת למי ששולח, ולהשתמש בפרמטר."},
+{f:"db.js",m:"connectionString:",s:"crit",rule:"hardcoded-secret",t:"סיסמת המאגר כתובה בקוד",x:"כל מי שרואה את הקוד, או גיבוי שלו, נכנס למאגר.",fix:"להעביר למשתנה סביבה ולהחליף את הסיסמה."},
+{f:"payments.js",m:"const PAYFLOW_KEY",s:"crit",rule:"hardcoded-secret",t:"מפתח תשלומים חי בתוך הקוד",x:"מפתח live של ספק התשלומים יושב בקובץ. דליפה שלו מאפשרת חיובים והחזרים בשם העסק.",fix:"משתנה סביבה, החלפת המפתח, ומפתח מוגבל הרשאות."},
+{f:"routes/orders.js",m:"const charge = pay.charge",s:"high",rule:"missing-await",t:"ההזמנה נשמרת לפני שברור שהתשלום עבר",x:"החיוב לא מחכה לתשובה. אם הכרטיס נדחה, ההזמנה כבר נשמרה והלקוח מקבל קבלה.",fix:"להוסיף await, ולשמור הזמנה רק אחרי חיוב מוצלח."},
+{f:"server.js",m:"err.stack",s:"high",rule:"stack-leak",t:"שגיאות חושפות את מבנה השרת",x:"כל שגיאה שולחת לדפדפן את כל עקבות הקוד, כולל נתיבים ושמות קבצים.",fix:"להחזיר הודעה כללית, ולשמור את הפרטים רק ביומן השרת."},
+{f:"mailer.js",m:"while (true)",s:"high",rule:"infinite-retry",t:"ניסיון שליחה בלי סוף",x:"אם שרת המייל נופל, הלולאה מנסה לנצח, תוקעת את השרת וממלאת את היומן.",fix:"עד 3 ניסיונות עם המתנה הולכת וגדלה, ואז לרשום כשלון."},
+{f:"public/app.js",m:"o.note",s:"high",rule:"xss",t:"הערה של לקוח יכולה להריץ קוד בדפדפן",x:"טקסט ההערה נכנס לעמוד כ-HTML. הערה עם תגית script רצה אצל מי שצופה ברשימה.",fix:"להשתמש ב-textContent במקום innerHTML."},
+{f:"public/app.js",m:"const total = items.reduce",s:"high",rule:"client-trust",t:"המחיר מחושב בדפדפן",x:"הלקוח שולח את הסכום לתשלום בעצמו, ואפשר לשנות אותו ל-1 שקל.",fix:"לחשב את הסכום בשרת לפי מחירון."},
+{f:"routes/orders.js",m:"WHERE order_id = \"",s:"med",rule:"n-plus-one",t:"שאילתה נפרדת לכל הזמנה",x:"לקוח עם 200 הזמנות גורם ל-201 פניות למאגר בכל טעינה.",fix:"שאילתה אחת עם JOIN או IN."},
+{f:"db.js",m:"pool.query(\"INSERT INTO items",s:"med",rule:"missing-await",t:"פריטי ההזמנה נשמרים בלי לחכות",x:"הפונקציה מחזירה הצלחה לפני שהפריטים נכתבו. אם אחד נכשל, אף אחד לא יודע.",fix:"await על כל הוספה, בתוך טרנזקציה אחת."},
+{f:"routes/orders.js",m:"mail.sendReceipt(email, id)",s:"med",rule:"floating-promise",t:"כשלון בשליחת קבלה לא נתפס",x:"שליחת הקבלה רצה בלי await ובלי catch. שגיאה שם יכולה להפיל את התהליך כולו.",fix:"לעטוף ב-catch ולרשום ביומן."}],
+nodes:{web:{x:30,y:150,l:"public/app.js",s:"דפדפן הלקוח"},server:{x:210,y:150,l:"server.js",s:"שרת Express"},orders:{x:390,y:150,l:"routes/orders.js",s:"נתיבי הזמנות"},db:{x:570,y:40,l:"db.js",s:"גישה למאגר"},pay:{x:570,y:150,l:"payments.js",s:"חיוב"},mail:{x:570,y:260,l:"mailer.js",s:"קבלות במייל"}},
+ext:{pg:{x:740,y:40,l:"PostgreSQL",s:"מאגר נתונים"},pf:{x:740,y:150,l:"PayFlow API",s:"ספק תשלומים"},smtp:{x:740,y:260,l:"MailPost SMTP",s:"שרת מייל"}},
+edges:[["web","server","HTTP"],["server","orders",""],["orders","db",""],["orders","pay",""],["orders","mail",""],["db","pg","SQL"],["pay","pf","HTTPS"],["mail","smtp","SMTP"]]});
+
+P.push({title:"Fern Yoga",about:"הרשמה לשיעורי יוגה · Python Flask",
+files:[
+{name:"app.py",node:"app",src:
+`from flask import Flask, request, jsonify, session
+import sqlite3
+from auth import login_required, check_password
+from bookings import book_class, list_classes
+
+app = Flask(__name__)
+app.secret_key = "dev"
+app.config["DEBUG"] = True
+
+def db():
+    return sqlite3.connect("fern.db")
+
+@app.post("/login")
+def login():
+    data = request.get_json()
+    user = db().execute("SELECT id, pw FROM users WHERE email=?",
+                        (data["email"],)).fetchone()
+    if user and check_password(data["password"], user[1]):
+        session["uid"] = user[0]
+        return jsonify(ok=True)
+    return jsonify(ok=False, reason="wrong password for " + data["email"]), 401
+
+@app.get("/classes")
+def classes():
+    return jsonify(list_classes(db(), request.args.get("day")))
+
+@app.post("/book/<int:class_id>")
+@login_required
+def book(class_id):
+    return jsonify(book_class(db(), session["uid"], class_id))
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0")`},
+{name:"auth.py",node:"auth",src:
+`import hashlib
+from functools import wraps
+from flask import session, abort
+
+def hash_password(pw):
+    return hashlib.md5(pw.encode()).hexdigest()
+
+def check_password(pw, stored):
+    return hash_password(pw) == stored
+
+def login_required(fn):
+    @wraps(fn)
+    def inner(*a, **kw):
+        if "uid" not in session:
+            abort(401)
+        return fn(*a, **kw)
+    return inner`},
+{name:"bookings.py",node:"book",src:
+`from datetime import datetime
+
+def list_classes(conn, day):
+    q = f"SELECT id, title, starts, seats FROM classes WHERE day = '{day}'"
+    cols = ["id", "title", "starts", "seats"]
+    return [dict(zip(cols, r)) for r in conn.execute(q)]
+
+def book_class(conn, uid, class_id):
+    row = conn.execute("SELECT seats FROM classes WHERE id=?",
+                       (class_id,)).fetchone()[0]
+    if row > 0:
+        conn.execute("UPDATE classes SET seats = ? WHERE id=?",
+                     (row - 1, class_id))
+        conn.execute("INSERT INTO bookings(uid, class_id, at) VALUES(?,?,?)",
+                     (uid, class_id, datetime.now()))
+        return {"ok": True}
+    return {"ok": False, "reason": "full"}`}],
+find:[
+{f:"app.py",m:"app.secret_key = \"dev\"",s:"crit",rule:"weak-secret",t:"מפתח העוגיות הוא המילה dev",x:"מי שיודע את המפתח יכול לזייף עוגיית כניסה ולהיכנס כל משתמש בלי סיסמה.",fix:"מפתח אקראי ארוך ממשתנה סביבה."},
+{f:"app.py",m:"app.run(host=\"0.0.0.0\")",s:"crit",rule:"debug-exposed",t:"מצב דיבאג פתוח לכל האינטרנט",x:"DEBUG פעיל והשרת מאזין לכל הכתובות. מסך הדיבאג של Flask מאפשר להריץ קוד על השרת.",fix:"לכבות DEBUG בייצור ולהריץ מאחורי שרת ייעודי."},
+{f:"bookings.py",m:"WHERE day = '{day}'",s:"crit",rule:"sql-injection",t:"היום בכתובת נכנס ישר לשאילתה",x:"מי ששולח טקסט מיוחד במקום יום יכול לקרוא את טבלת המשתמשים כולה.",fix:"פרמטר (?) במקום f-string."},
+{f:"auth.py",m:"hashlib.md5",s:"high",rule:"weak-hash",t:"סיסמאות נשמרות ב-MD5 בלי מלח",x:"אם המאגר דולף, רוב הסיסמאות נפרצות בתוך דקות.",fix:"bcrypt או argon2."},
+{f:"bookings.py",m:"if row > 0:",s:"high",rule:"race-condition",t:"שתי הרשמות יכולות לקבל את המקום האחרון",x:"הקוד קורא כמה מקומות נשארו ואז כותב. שתי בקשות באותו רגע רואות 1 ושתיהן נרשמות.",fix:"UPDATE אחד עם תנאי seats > 0 ובדיקה כמה שורות השתנו."},
+{f:"bookings.py",m:"return {\"ok\": True}",s:"high",rule:"no-commit",t:"ההרשמה לא נשמרת בכלל",x:"אין commit. הלקוחה מקבלת אישור, והמאגר חוזר לקדמותו כשהחיבור נסגר.",fix:"conn.commit() אחרי שתי הפעולות, או with conn:."},
+{f:"app.py",m:"reason=\"wrong password for \"",s:"med",rule:"user-enumeration",t:"ההודעה מגלה אילו מיילים רשומים",x:"תשובה שונה למייל קיים ולמייל לא קיים מאפשרת לבנות רשימת לקוחות.",fix:"הודעה אחידה: פרטי הכניסה שגויים."},
+{f:"app.py",m:"@app.post(\"/login\")",s:"med",rule:"no-rate-limit",t:"אין הגבלה על ניסיונות כניסה",x:"אפשר לנחש סיסמאות בלי סוף.",fix:"הגבלה לפי כתובת ומשתמש, למשל 5 בדקה."},
+{f:"auth.py",m:"hash_password(pw) == stored",s:"med",rule:"timing",t:"השוואת סיסמה רגילה",x:"השוואה רגילה מסתיימת מוקדם בתו הראשון ששונה, ומדליפה מידע לפי זמן.",fix:"hmac.compare_digest, או פונקציית הבדיקה של הספרייה."},
+{f:"bookings.py",m:".fetchone()[0]",s:"med",rule:"null-crash",t:"שיעור שלא קיים מפיל את הבקשה",x:"אם אין שיעור עם המספר הזה, fetchone מחזיר None והקוד קורס עם שגיאה 500.",fix:"לבדוק אם התוצאה ריקה ולהחזיר 404."},
+{f:"app.py",m:"return sqlite3.connect",s:"med",rule:"leaked-connection",t:"חיבורים למאגר לא נסגרים",x:"כל בקשה פותחת חיבור חדש ולא סוגרת אותו. בעומס הקובץ ננעל.",fix:"חיבור אחד לבקשה עם סגירה ב-teardown."}],
+nodes:{app:{x:210,y:150,l:"app.py",s:"נקודת הכניסה"},auth:{x:400,y:40,l:"auth.py",s:"כניסה וסיסמאות"},book:{x:400,y:260,l:"bookings.py",s:"שיעורים והרשמה"}},
+ext:{client:{x:30,y:150,l:"Browser",s:"אתר ההרשמה"},sqlite:{x:590,y:150,l:"fern.db",s:"SQLite"}},
+edges:[["client","app","HTTP"],["app","auth",""],["app","book",""],["app","sqlite","users"],["book","sqlite","classes"]]});
+
+P.push({title:"Lantern Notes",about:"שליחת ניוזלטר עם ברכה אישית · Node.js",
+files:[
+{name:"worker.js",node:"worker",src:
+`const queue = require("./queue");
+const { intro } = require("./templates");
+const mailer = require("./mailer-lite");
+const cfg = require("./config");
+
+setInterval(async () => {
+  const job = queue.next();
+  if (!job) return;
+  for (const sub of job.subscribers) {
+    const hello = await intro(sub, job.topic);
+    await mailer.send(cfg, sub.email, job.subject, hello + "\\n\\n" + job.body);
+  }
+  console.log("sent", job.subscribers.length);
+}, 1000);`},
+{name:"queue.js",node:"queue",src:
+`const fs = require("fs");
+const FILE = "./queue.json";
+
+function load() {
+  return JSON.parse(fs.readFileSync(FILE, "utf8"));
+}
+function save(q) {
+  fs.writeFileSync(FILE, JSON.stringify(q));
+}
+function push(job) {
+  const q = load();
+  q.push(job);
+  save(q);
+}
+function next() {
+  const q = load();
+  const job = q.shift();
+  save(q);
+  return job;
+}
+
+module.exports = { push, next };`},
+{name:"templates.js",node:"tpl",src:
+`const fs = require("fs");
+const { aiKey } = require("./config");
+const STYLE_GUIDE = fs.readFileSync("./style-guide.md", "utf8");
+
+async function intro(subscriber, topic) {
+  const r = await fetch("https://api.ai.example/v1/complete", {
+    method: "POST",
+    headers: { "x-api-key": aiKey, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: "largest-model",
+      prompt: STYLE_GUIDE + "\\nWrite a one-line greeting for " + subscriber.name + " about " + topic
+    })
+  });
+  return (await r.json()).text;
+}
+
+module.exports = { intro };`},
+{name:"config.js",node:"cfg",src:
+`module.exports = {
+  smtpUser: "news@lantern.example",
+  smtpPass: process.env.SMTP_PASS || "lantern123",
+  batchSize: 500,
+  aiKey: process.env.AI_KEY
+};`}],
+find:[
+{f:"worker.js",m:"require(\"./mailer-lite\")",s:"crit",rule:"missing-module",t:"קובץ שליחת המייל לא קיים בפרויקט",x:"worker.js טוען את mailer-lite, שאין בפרויקט. התהליך נופל מיד בהפעלה ואף מייל לא יוצא.",fix:"להוסיף את הקובץ או להחליף בספרייה מוכרת."},
+{f:"worker.js",m:"setInterval(async",s:"high",rule:"overlapping-runs",t:"סבבים נכנסים אחד לתוך השני",x:"כל שנייה מתחיל סבב חדש גם אם הקודם עוד שולח. שני סבבים שולחים לאותו מנוי פעמיים.",fix:"לולאה שמחכה לסוף הסבב לפני שמתחילה את הבא."},
+{f:"templates.js",m:"model: \"largest-model\"",s:"high",rule:"cost",t:"המודל הגדול ביותר כותב שורת ברכה",x:"קריאה למודל יקר לכל מנוי, עם מדריך סגנון שלם בכל פעם. ב-10,000 מנויים זו הוצאה של מאות דולרים על שורה אחת.",fix:"מודל קטן, או ברכה אחת לכל נושא שנשתלת עם השם בקוד."},
+{f:"queue.js",m:"q.push(job)",s:"high",rule:"race-condition",t:"שני תהליכים דורסים את התור",x:"קריאה, שינוי וכתיבה של אותו קובץ בלי נעילה. עבודה שנוספה באמצע נמחקת.",fix:"תור אמיתי (מאגר או Redis) או נעילת קובץ."},
+{f:"config.js",m:"|| \"lantern123\"",s:"high",rule:"fallback-secret",t:"סיסמת ברירת מחדל למייל",x:"אם משתנה הסביבה חסר, הקוד משתמש בסיסמה שכתובה בו, וזו גם דליפה וגם תקלה שקטה.",fix:"לעצור עם שגיאה ברורה כשהסיסמה חסרה."},
+{f:"templates.js",m:"prompt: STYLE_GUIDE",s:"med",rule:"no-prompt-cache",t:"אותו מדריך סגנון נשלח שוב ושוב",x:"החלק הקבוע של הבקשה נשלח במלואו בכל קריאה, ומשלמים עליו כל פעם מחדש.",fix:"שמירת החלק הקבוע במטמון של הספק, או קיצור."},
+{f:"templates.js",m:"+ subscriber.name +",s:"med",rule:"prompt-injection",t:"שם המנוי נכנס להוראות למודל",x:"מנוי שקורא לעצמו 'Ignore the above and...' משנה את מה שהמודל כותב בניוזלטר.",fix:"להפריד נתונים מהוראות, ולבדוק את הפלט לפני שליחה."},
+{f:"queue.js",m:"const job = q.shift()",s:"med",rule:"lost-work",t:"עבודה נמחקת לפני שנשלחה",x:"העבודה יוצאת מהתור לפני השליחה. קריסה באמצע, והמנויים שנשארו לא יקבלו כלום.",fix:"לסמן כבטיפול ולמחוק רק אחרי הצלחה."},
+{f:"worker.js",m:"await mailer.send",s:"med",rule:"no-unsubscribe",t:"אין קישור הסרה במייל",x:"גוף המייל לא כולל הסרה מרשימת התפוצה, וזה גם עובר על הכללים וגם מוריד את המיילים לספאם.",fix:"להוסיף קישור הסרה וכותרת List-Unsubscribe."},
+{f:"queue.js",m:"fs.writeFileSync(FILE",s:"med",rule:"non-atomic-write",t:"קריסה באמצע כתיבה משחיתה את התור",x:"הקובץ נכתב ישירות. נפילה באמצע משאירה JSON שבור, והסבב הבא קורס.",fix:"לכתוב לקובץ זמני ואז לשנות שם."}],
+nodes:{worker:{x:30,y:150,l:"worker.js",s:"שליחה כל שנייה"},queue:{x:210,y:40,l:"queue.js",s:"תור עבודות"},tpl:{x:210,y:150,l:"templates.js",s:"ברכה אישית"},cfg:{x:400,y:260,l:"config.js",s:"הגדרות"}},
+ext:{qjson:{x:400,y:40,l:"queue.json",s:"קובץ בדיסק"},ai:{x:400,y:150,l:"AI API",s:"מודל שפה"},ml:{x:210,y:260,l:"mailer-lite",s:"חסר בפרויקט"}},
+edges:[["worker","queue",""],["worker","tpl",""],["worker","ml","SMTP"],["queue","qjson","fs"],["tpl","ai","HTTPS"],["tpl","cfg",""]]});
+
+/* resolve finding lines from their marker text */
+P.forEach(function(p){p.find.forEach(function(x){var f=p.files.filter(function(y){return y.name===x.f})[0];var ls=f.src.split("\n");for(var i=0;i<ls.length;i++){if(ls[i].indexOf(x.m)>=0){x.l=i+1;break}}if(!x.l)x.l=1})});
+
+var SESSION_MS=180*60*1000,KEY="sampleScan.start3h.v2";
+var $=function(id){return document.getElementById(id)};
+var codeEl=$("code"),filesEl=$("files");
+var pi=0,round=1,cumulative=0,found=[],pos={f:0,l:0},timer=null,paused=false,start=null,scanned=0,total=0;
+var speeds=[[1100,"רגילה"],[350,"מהירה"],[2500,"איטית"]],sp=0;
+function store(v){try{if(v===undefined)return localStorage.getItem(KEY);if(v===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,v)}catch(e){return null}}
+function proj(){return P[pi]}
+
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function hl(line){
+  var parts=[],re=/(\/\/.*$|#.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(const|let|async|await|function|return|for|of|while|true|True|try|catch|require|new|module|def|import|from|if|in|not|and|None)\b|\b(\d+)\b/g,last=0,m;
+  while((m=re.exec(line))){parts.push(esc(line.slice(last,m.index)));var c=m[1]?"cm":m[2]?"st":m[3]?"kw":"nu";parts.push('<span class="'+c+'">'+esc(m[0])+"</span>");last=re.lastIndex}
+  parts.push(esc(line.slice(last)));return parts.join("");
+}
+function renderTabs(){var fs=proj().files;filesEl.innerHTML=fs.map(function(f,i){return '<span class="'+(i===pos.f?"on":i<pos.f?"done":"")+'">'+esc(f.name)+"</span>"}).join("");var on=filesEl.querySelector(".on");if(on){filesEl.scrollLeft=on.offsetLeft-20}}
+function renderFile(){
+  var f=proj().files[pos.f];
+  codeEl.innerHTML=f.src.split("\n").map(function(line,i){return '<div class="ln" data-l="'+(i+1)+'"><b>'+(i+1)+"</b><span>"+(hl(line)||" ")+"</span></div>"}).join("");
+  found.filter(function(x){return x.f===f.name}).forEach(markFlag);
+  renderTabs();$("stFile").textContent=proj().title+" / "+f.name;codeEl.scrollTop=0;
+}
+function markFlag(x){var el=codeEl.querySelector('[data-l="'+x.l+'"]');if(!el||el.classList.contains("flag"))return;el.classList.add("flag");var t=document.createElement("span");t.className="tag";t.textContent="◀ "+x.rule;el.lastChild.appendChild(t)}
+
+var SEV={crit:["קריטי","c-crit"],high:["גבוה","c-high"],med:["בינוני","c-med"]};
+function card(x,isNew){
+  var d=document.createElement("div");d.className="f"+(isNew?" new":"");
+  d.innerHTML='<span class="chip '+SEV[x.s][1]+'"></span><h3></h3><div class="where"></div><p class="x"></p><p class="fix"></p>';
+  d.querySelector(".chip").textContent=SEV[x.s][0];d.querySelector("h3").textContent=x.t;d.querySelector(".where").textContent=x.f+":"+x.l+"  ·  "+x.rule;
+  d.querySelector(".x").textContent=x.x;d.querySelector(".fix").textContent="תיקון: "+x.fix;return d;
+}
+function renderLists(newest){
+  var L=$("latest");
+  if(newest){if(L.querySelector(".empty"))L.textContent="";L.insertBefore(card(newest,true),L.firstChild);while(L.children.length>3)L.removeChild(L.lastChild)}
+  var A=$("all");A.textContent="";
+  if(!found.length){var e=document.createElement("div");e.className="empty";e.textContent="עוד לא נמצא כלום בפרויקט הנוכחי.";A.appendChild(e)}
+  var order={crit:0,high:1,med:2};
+  found.slice().sort(function(a,b){return order[a.s]-order[b.s]}).forEach(function(x){A.appendChild(card(x,false))});
+  var n={crit:0,high:0,med:0};found.forEach(function(x){n[x.s]++});
+  $("nCrit").textContent=n.crit;$("nHigh").textContent=n.high;$("nMed").textContent=n.med;
+  $("tabCount").textContent=found.length?"("+found.length+")":"";$("nTotal").textContent=cumulative;$("nRound").textContent=round;
+  drawMap();
+}
+function setProjectLabel(){$("proj").innerHTML="";var b=document.createElement("span");$("proj").textContent="פרויקט "+(pi+1)+" מתוך "+P.length+": "+proj().title+" ";b.textContent="· "+proj().about;$("proj").appendChild(b)}
+
+function loadProject(i){
+  pi=i;found=[];pos={f:0,l:0};scanned=0;
+  total=proj().files.reduce(function(a,f){return a+f.src.split("\n").length},0);
+  $("bar").style.width="0";$("pct").textContent="0%";
+  $("latest").innerHTML="";var e=document.createElement("div");e.className="empty";e.textContent="הממצאים יופיעו כאן ברגע שהסורק מגיע לשורה הבעייתית.";$("latest").appendChild(e);
+  $("stRule").textContent="rules: 14";setProjectLabel();renderFile();renderLists();
+}
+
+function step(){
+  if(paused)return;
+  if(start&&Date.now()-start>=SESSION_MS){endSession();return}
+  var f=proj().files[pos.f],lines=f.src.split("\n");
+  var prev=codeEl.querySelector(".scan");if(prev)prev.classList.remove("scan");
+  var el=codeEl.querySelector('[data-l="'+(pos.l+1)+'"]');
+  if(el){el.classList.add("scan");codeEl.scrollTop=el.offsetTop-codeEl.clientHeight/2}
+  $("stRule").textContent="line "+(pos.l+1)+"/"+lines.length;
+  proj().find.forEach(function(x){if(x.f===f.name&&x.l===pos.l+1&&found.indexOf(x)<0){found.push(x);cumulative++;markFlag(x);renderLists(x)}});
+  scanned++;var p=Math.round(100*scanned/total);$("bar").style.width=p+"%";$("pct").textContent=p+"%";
+  pos.l++;
+  if(pos.l>=lines.length){
+    pos.f++;pos.l=0;
+    if(pos.f>=proj().files.length){
+      pos.f=proj().files.length-1;renderTabs();
+      $("stFile").textContent=proj().title+": scan complete";$("stRule").textContent=found.length+" findings";
+      clearInterval(timer);timer=null;
+      setTimeout(function(){var n=(pi+1)%P.length;if(n===0)round++;loadProject(n);run()},4000);
+      return;
+    }
+    renderFile();
+  }
+}
+function run(){clearInterval(timer);if(start)timer=setInterval(step,speeds[sp][0])}
+
+function clock(){
+  if(!start)return;
+  var left=Math.max(0,SESSION_MS-(Date.now()-start));
+  var h=Math.floor(left/3600000),m=Math.floor(left%3600000/60000),s=Math.floor(left%60000/1000);
+  $("clock").textContent=h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+  $("clockLbl").textContent=paused?"מושהה":"נשאר להרצה";
+  if(left<=0)endSession();
+}
+function endSession(){
+  clearInterval(timer);timer=null;start=null;store(null);
+  $("clock").textContent="0:00:00";$("clockLbl").textContent="ההרצה של שלוש שעות הסתיימה · "+(round)+" סבבים · "+cumulative+" ממצאים";
+  $("stFile").textContent="session complete";$("go").textContent="עוד שלוש שעות";
+  $("doneModal").hidden=false;try{$("doneLink").focus()}catch(e){}
+}
+$("doneClose").addEventListener("click",function(){$("doneModal").hidden=true});
+$("doneLink").addEventListener("click",function(){setTimeout(function(){$("doneModal").hidden=true},300)});
+function begin(fresh){
+  if(fresh){start=Date.now();store(String(start));round=1;cumulative=0;loadProject(0)}
+  paused=false;$("go").textContent="השהיה";run();
+}
+
+$("go").addEventListener("click",function(){
+  if(!start){begin(true);return}
+  paused=!paused;this.textContent=paused?"המשך":"השהיה";clock();
+});
+$("speed").addEventListener("click",function(){sp=(sp+1)%speeds.length;this.textContent="מהירות: "+speeds[sp][1];if(timer)run()});
+
+function drawMap(){
+  var p=proj(),cnt={};
+  found.forEach(function(x){var n=p.files.filter(function(f){return f.name===x.f})[0].node;cnt[n]=(cnt[n]||0)+1});
+  var W=130,H=58,all=Object.assign({},p.nodes,p.ext),mx=0,my=0;
+  Object.keys(all).forEach(function(k){mx=Math.max(mx,all[k].x+W);my=Math.max(my,all[k].y+H)});
+  var s='<svg viewBox="0 0 '+(mx+24)+" "+(my+20)+'" style="min-width:'+Math.round((mx+24)*0.66)+'px" role="img" aria-label="מבנה הפרויקט '+esc(p.title)+'" font-family="Rubik, sans-serif"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--mute)"/></marker></defs>';
+  p.edges.forEach(function(e){var a=all[e[0]],b=all[e[1]],x1,y1,x2,y2,d;
+    if(b.x>a.x){x1=a.x+W;y1=a.y+H/2;x2=b.x;y2=b.y+H/2;var cx=(x1+x2)/2;d="M"+x1+","+y1+" C"+cx+","+y1+" "+cx+","+y2+" "+x2+","+y2}
+    else{x1=a.x+W/2;y1=a.y+(b.y>a.y?H:0);x2=b.x+W/2;y2=b.y+(b.y>a.y?0:H);var cy=(y1+y2)/2;d="M"+x1+","+y1+" C"+x1+","+cy+" "+x2+","+cy+" "+x2+","+y2}
+    s+='<path d="'+d+'" fill="none" stroke="var(--mute)" stroke-width="1.5" marker-end="url(#ar)"/>';
+    if(e[2])s+='<text x="'+((x1+x2)/2)+'" y="'+(Math.abs(y1-y2)<2?y1-7:(y1+y2)/2-6)+'" font-size="11" fill="var(--mute)" text-anchor="middle">'+e[2]+"</text>"});
+  Object.keys(all).forEach(function(k){var n=all[k],ext=!!p.ext[k],c=cnt[k]||0;
+    s+='<rect x="'+n.x+'" y="'+n.y+'" width="'+W+'" height="'+H+'" rx="10" fill="var(--card)" stroke="'+(c?"var(--crit)":ext?"var(--mute)":"var(--accent)")+'" stroke-width="'+(c?2.5:1.5)+'"'+(ext?' stroke-dasharray="4 3"':"")+"/>";
+    s+='<text x="'+(n.x+W/2)+'" y="'+(n.y+24)+'" font-size="12.5" font-weight="600" fill="var(--ink)" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+esc(n.l)+"</text>";
+    s+='<text x="'+(n.x+W/2)+'" y="'+(n.y+43)+'" font-size="12" fill="var(--mute)" text-anchor="middle">'+esc(n.s)+"</text>";
+    if(c)s+='<circle cx="'+(n.x+W-4)+'" cy="'+(n.y+4)+'" r="11" fill="var(--crit)"/><text x="'+(n.x+W-4)+'" y="'+(n.y+8)+'" font-size="12" font-weight="700" fill="var(--card)" text-anchor="middle">'+c+"</text>"});
+  $("mapBox").innerHTML=s+"</svg>";
+}
+
+var tabs=["scan","map","list"];
+tabs.forEach(function(t){$("t-"+t).addEventListener("click",function(){tabs.forEach(function(u){var on=u===t;$("t-"+u).setAttribute("aria-selected",String(on));$("p-"+u).hidden=!on})})});
+
+setInterval(clock,1000);
+loadProject(0);
+store(null);setTimeout(function(){begin(true)},600);
+})();
+</script>
+
+</body></html>
